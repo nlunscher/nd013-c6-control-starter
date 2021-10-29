@@ -4,6 +4,7 @@
  *      Author: Mathilde Badoual
  **********************************************/
 
+#include "utils.h"
 #include "pid_controller.h"
 #include <vector>
 #include <iostream>
@@ -27,6 +28,7 @@ void PID::Init(double Kpi, double Kii, double Kdi, double output_lim_maxi, doubl
   sum_cte = 0.0;
   diff_cte = 0.0;
   cte = 0.0;
+  first_input = true;
 }
 
 void PID::UpdateError(double cte_i) {
@@ -34,9 +36,14 @@ void PID::UpdateError(double cte_i) {
    * TODO: Update PID errors based on cte.
    **/
 
-   if (std::abs(delta_time) < 1e-6)
+   if (first_input)
    {
-     diff_cte = 0;
+      diff_cte = 0;
+      first_input = false;
+   }
+   else if (std::abs(delta_time) < 1e-6)
+   {
+      diff_cte = 0;
    }
    else
    {
@@ -55,7 +62,7 @@ double PID::TotalError() {
    double control = -Kp * cte - Kd * diff_cte - Ki * sum_cte;
 
    // clamp to min max range
-   control = min(max(control, output_lim_min), output_lim_max);
+   control = utils::clampD(control, output_lim_min, output_lim_max);
 
    return control;
 }
