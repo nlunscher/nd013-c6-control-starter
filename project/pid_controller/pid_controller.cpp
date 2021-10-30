@@ -50,7 +50,7 @@ void PID::UpdateError(double cte_i) {
       diff_cte = (cte_i - cte) / delta_time;
    }
 
-   sum_cte = sum_cte + cte_i * delta_time;
+   sum_cte += cte_i * delta_time;
    cte = cte_i;
 }
 

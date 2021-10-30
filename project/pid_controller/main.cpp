@@ -180,8 +180,6 @@ void path_planner(vector<double>& x_points, vector<double>& y_points, vector<dou
     y_points.push_back(point_y);
     v_points.push_back(velocity);
   }
-
-
 }
 
 void set_obst(vector<double> x_points, vector<double> y_points, vector<State>& obstacles, bool& obst_flag){
@@ -195,10 +193,15 @@ void set_obst(vector<double> x_points, vector<double> y_points, vector<State>& o
 	obst_flag = true;
 }
 
-// int main (int argc, char* argv[])
-int main()
+// int main()
+// Use args such that it is faster to iterate on the params instead of re-compiling every time
+int main (int argc, char* argv[])
 {
-  // std::cout << "main args: " << argv[1] << ", " << argv[2] << ", " << argv[3] << ", " << argv[4] << ", " << argv[5] << ", " << argv[6] << std::endl;
+  if (argc >= 7)
+  {
+    std::cout << "main args: " << argv[1] << ", " << argv[2] << ", " << argv[3] << ", ";
+    std::cout << argv[4] << ", " << argv[5] << ", " << argv[6] << std::endl;
+  }
 
   cout << "starting server" << endl;
   uWS::Hub h;
@@ -223,15 +226,18 @@ int main()
   **/
   PID pid_steer = PID();
   double steer_kp = 0.25;
-  double steer_ki = 0.002;
-  double steer_kd = 0.4;
+  double steer_ki = 0.001;
+  double steer_kd = 0.2;
   double steer_output_lim_max = 1.0;
   double steer_output_lim_min = -1.0;
 
   // Use args
-  // steer_kp = std::stod(argv[1]);
-  // steer_ki = std::stod(argv[2]);
-  // steer_kd = std::stod(argv[3]);
+  if (argc >= 7)
+  {
+    steer_kp = std::stod(argv[1]);
+    steer_ki = std::stod(argv[2]);
+    steer_kd = std::stod(argv[3]);
+  }
 
   pid_steer.Init(steer_kp, steer_ki, steer_kd, steer_output_lim_max, steer_output_lim_min);
 
@@ -242,14 +248,17 @@ int main()
   PID pid_throttle = PID();
   double throttle_kp = 0.25;
   double throttle_ki = 0.001;
-  double throttle_kd = 0.04;
+  double throttle_kd = 0.05;
   double throttle_output_lim_max = 1.0;
   double throttle_output_lim_min = -1.0;
 
   // Use args
-  // throttle_kp = std::stod(argv[4]);
-  // throttle_ki = std::stod(argv[5]);
-  // throttle_kd = std::stod(argv[6]);
+  if (argc >= 7)
+  {
+    throttle_kp = std::stod(argv[4]);
+    throttle_ki = std::stod(argv[5]);
+    throttle_kd = std::stod(argv[6]);
+  }
 
   pid_throttle.Init(throttle_kp, throttle_ki, throttle_kd, throttle_output_lim_max, throttle_output_lim_min);
 
@@ -327,17 +336,27 @@ int main()
           * TODO (step 3): compute the steer error (error_steer) from the position and the desired trajectory
           **/
 
-          // Y position error at the first point
-          // error_steer = -(y_points.front() - y_position);
-
-          // Y position error at all points
+          // Steer to nearest point
+          double min_dist = 999999;
+          int min_p = 0;
           for (int p = 0; p < y_points.size(); p++)
           {
             double distance = std::sqrt(std::pow(x_points[p] - x_position, 2) + std::pow(y_points[p] - y_position, 2));
-
-            // Scale steering based on how far that point is
-            error_steer += -(y_points[p] - y_position) * (1.0 / (distance + 1e-6) * (1.0 / (p + 1)));
+            if (distance < min_dist)
+            {
+              min_dist = distance;
+              min_p = p;
+            }
           }
+
+          error_steer = -(y_points[min_p] - y_position);
+
+          // std::cout << "xy at (" << x_position << ", " << y_position << ")" << std::endl;
+          // for (int p = 0; p < y_points.size(); p++)
+          // {
+          //   std::cout << "(" << x_points[p] << ", " << y_points[p] << ")";
+          // }
+          // std::cout << std::endl << "s  err " << error_steer << std::endl;
 
           /**
           * TODO (step 3): uncomment these lines
@@ -372,13 +391,8 @@ int main()
           **/
           // modify the following line for step 2
 
-          // Acceleration to final point velocity
-          // double distance = std::sqrt(std::pow(x_points.back() - x_position, 2) + std::pow(y_points.back() - y_position, 2));
-          // double accel = (std::pow(v_points.back(), 2) - std::pow(velocity, 2)) / (2.0 * distance + 1e-6);
-          // error_throttle = -accel;
-
-          // The difference between the final trajectory point velocity and the current velocity
-          error_throttle = -(v_points.back() - velocity);
+          // Difference with nearest trajectory point velocity 
+          error_throttle = -(v_points[min_p] - velocity);
 
           // std::cout << "v at " << velocity << std::endl;
           // std::cout << "v err " << error_throttle << std::endl;
